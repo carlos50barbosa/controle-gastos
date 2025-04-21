@@ -5,6 +5,16 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const mysql = require('mysql2');
 
+console.log('🔍 Variáveis de conexão:');
+console.log({
+  host: process.env.MYSQLHOST,
+  port: process.env.MYSQLPORT,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE,
+});
+
+
 
 const app = express();
 app.use(cors());
@@ -16,8 +26,8 @@ const db = mysql.createConnection({
   user: process.env.MYSQLUSER,
   password: process.env.MYSQLPASSWORD,
   database: process.env.MYSQLDATABASE
-
 });
+
 
 const SECRET = process.env.JWT_SECRET;
 
