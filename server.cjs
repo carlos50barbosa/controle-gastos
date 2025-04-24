@@ -7,11 +7,10 @@ const mysql = require('mysql2');
 
 console.log('🔍 Variáveis de conexão:');
 console.log({
-  host: process.env.MYSQLHOST,
-  port: process.env.MYSQLPORT,
-  user: process.env.MYSQLUSER,
-  password: process.env.MYSQLPASSWORD,
-  database: process.env.MYSQLDATABASE,
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
 });
 
 
@@ -22,7 +21,6 @@ app.use(express.json());
 
 const db = mysql.createConnection({
   host: process.env.MYSQLHOST,
-  port: process.env.MYSQLPORT,
   user: process.env.MYSQLUSER,
   password: process.env.MYSQLPASSWORD,
   database: process.env.MYSQLDATABASE
