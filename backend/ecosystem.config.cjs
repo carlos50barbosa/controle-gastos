@@ -11,7 +11,8 @@ module.exports = {
         DB_USER: 'root',
         DB_PASS: 'The379280@!',
         DB_NAME: 'controle_gastos',
-        NODE_ENV: 'production'
+        NODE_ENV: 'production',
+        JWT_SECRET: 'thekri589'
       }
     }
   ]
