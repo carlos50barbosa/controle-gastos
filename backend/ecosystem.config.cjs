@@ -3,7 +3,7 @@ module.exports = {
   apps: [
     {
       name:   'controle-gastos',
-      script: './server.js',
+      script: './server.cjs',
       cwd:    __dirname,
       watch:  false,
       env: {
