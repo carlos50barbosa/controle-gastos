@@ -9,8 +9,7 @@ import {
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import GraficoGastos from './components/GraficoGastos';
-
-
+import { API } from './api';
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
@@ -35,16 +34,14 @@ export default function Dashboard() {
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [mostrarBotoes, setMostrarBotoes] = useState(false);
-
-  
+  const [mostrarBotoes, setMostrarBotoes] = useState(false);  
 
   useEffect(() => {
     carregarTransacoes();
   }, []);
 
   const carregarTransacoes = async () => {
-    const res = await fetch('http://localhost:3001/api/transacoes', {
+    const res = await fetch(`${API}/transacoes`, {
       headers: { Authorization: 'Bearer ' + token }
     });
     const data = await res.json();
@@ -92,8 +89,8 @@ export default function Dashboard() {
 
     const metodo = form.id ? 'PUT' : 'POST';
     const url = form.id
-      ? `http://localhost:3001/api/transacoes/${form.id}`
-      : `http://localhost:3001/api/transacoes`;
+      ? `${API}/transacoes/${form.id}`
+      : `${API}/transacoes`;
 
     const res = await fetch(url, {
       method: metodo,
@@ -134,7 +131,7 @@ export default function Dashboard() {
   };
 
   const excluir = async (id) => {
-    const res = await fetch(`http://localhost:3001/api/transacoes/${id}`, {
+    const res = await fetch(`${API}/transacoes/${id}`, {
       method: 'DELETE',
       headers: { Authorization: 'Bearer ' + token }
     });
@@ -185,7 +182,7 @@ export default function Dashboard() {
     const confirmar = window.confirm(`Excluir ${selecionadas.length} transações?`);
     if (!confirmar) return;
 
-    const res = await fetch('http://localhost:3001/api/transacoes', {
+    const res = await fetch(`${API}/transacoes`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -241,7 +238,7 @@ export default function Dashboard() {
 
     for (const t of json) {
       try {
-        const res = await fetch('http://localhost:3001/api/transacoes', {
+        const res = await fetch(`${API}/transacoes`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
