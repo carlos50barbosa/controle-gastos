@@ -1,3 +1,4 @@
 // src/api.js
-// pontapé para isolar a URL da API
-export const API = import.meta.env.VITE_API_BASE_URL || '/api';
+export const API = import.meta.env.PROD
+  ? '/api'
+  : 'http://localhost:3001/api';
