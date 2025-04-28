@@ -1,16 +1,15 @@
-// Carrega variáveis de ambiente
 const path = require('path');
-require('dotenv').config({
+
+// força carregar o .env que está na mesma pasta de server.cjs
+const result = require('dotenv').config({
   path: path.resolve(__dirname, '.env')
 });
+if (result.error) {
+  console.error('❌ Falha ao ler .env:', result.error);
+  process.exit(1);
+}
 
-const express = require('express');
-const mysql = require('mysql2/promise');
-const cors = require('cors');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-
-// Exibe configurações de conexão
+// Diagnóstico rápido:
 console.log('🔍 Variáveis de conexão:', {
   host:     process.env.DB_HOST,
   user:     process.env.DB_USER,
@@ -18,33 +17,33 @@ console.log('🔍 Variáveis de conexão:', {
   database: process.env.DB_NAME
 });
 
-// Inicializa o Express
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Cria pool de conexões MySQL para maior resiliência
-const pool = mysql.createPool({
-  host:               process.env.DB_HOST,
-  user:               process.env.DB_USER,
-  password:           process.env.DB_PASS,
-  database:           process.env.DB_NAME,
+// usa pool em vez de conexão simples
+const mysql = require('mysql2/promise');
+const pool  = mysql.createPool({
+  host:            process.env.DB_HOST,
+  user:            process.env.DB_USER,
+  password:        process.env.DB_PASS,
+  database:        process.env.DB_NAME,
   waitForConnections: true,
-  connectionLimit:    10,
-  queueLimit:         0
+  connectionLimit: 10,
+  queueLimit:      0
 });
 
-// Testa conexão ao banco
+// testa a conexão
 (async () => {
   try {
     const conn = await pool.getConnection();
-    console.log('✅ Conectado ao banco de dados (pool)');
+    await conn.ping();
     conn.release();
+    console.log('✅ Conectado ao banco de dados');
   } catch (err) {
-    console.error('❌ Erro ao conectar ao banco de dados:', err);
+    console.error('❌ Erro ao conectar ao banco:', err);
     process.exit(1);
   }
 })();
+
+// …o resto do seu código continua aqui, usando pool.execute() em vez de db.execute()
+
 
 // JWT Secret
 const SECRET = process.env.JWT_SECRET;
