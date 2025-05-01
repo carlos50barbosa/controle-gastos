@@ -1,119 +1,95 @@
 import React, { useState, useEffect } from 'react';
-import {
-  format,
-  parseISO,
-  isSameDay,
-  isSameWeek,
-  isSameMonth
-} from 'date-fns';
+import { format, parseISO, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import GraficoGastos from './components/GraficoGastos';
-import { API } from './api';
+
+// Use a variável de ambiente definida no Vite
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [form, setForm] = useState({
-    descricao: '',
-    tipo: 'receita',
-    categoria: '',
-    valor: '',
-    data: '',
-    id: null
+    descricao: '', tipo: 'receita', categoria: '', valor: '', data: '', id: null
   });
   const [modoEdicao, setModoEdicao] = useState(false);
   const [idParaExcluir, setIdParaExcluir] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
-  const [modalLogout, setModalLogout] = useState(false);
   const [selecionadas, setSelecionadas] = useState([]);
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [filtroPeriodo, setFiltroPeriodo] = useState('mes');
-  const token = localStorage.getItem('token');
   const [filtroDataInicio, setFiltroDataInicio] = useState('');
   const [filtroDataFim, setFiltroDataFim] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [mostrarBotoes, setMostrarBotoes] = useState(false);  
+  const [mostrarBotoes, setMostrarBotoes] = useState(false);
+  const token = localStorage.getItem('token');
 
-  useEffect(() => {
-    carregarTransacoes();
-  }, []);
+  useEffect(() => { carregarTransacoes(); }, []);
 
-  const carregarTransacoes = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/transacoes`, {
-      headers: { Authorization: 'Bearer ' + token }
+  async function carregarTransacoes() {
+    const res = await fetch(`${API_URL}/transacoes`, {
+      headers: { Authorization: `Bearer ${token}` }
     });
     const data = await res.json();
     setTransactions(data);
-  };
+  }
 
+  // Filtros e resumo
   const hoje = new Date();
   const transacoesFiltradas = transactions.filter(t => {
-    const data = parseISO(t.data);
-  
+    const d = parseISO(t.data);
     const periodoValido =
-      (filtroPeriodo === 'dia' && isSameDay(data, hoje)) ||
-      (filtroPeriodo === 'semana' && isSameWeek(data, hoje)) ||
-      (filtroPeriodo === 'mes' && isSameMonth(data, hoje)) ||
-      (!filtroPeriodo && true);
-  
+      (filtroPeriodo === 'dia' && isSameDay(d, hoje)) ||
+      (filtroPeriodo === 'semana' && isSameWeek(d, hoje)) ||
+      (filtroPeriodo === 'mes' && isSameMonth(d, hoje)) ||
+      (!filtroPeriodo);
     const tipoValido = filtroTipo === 'todos' || t.tipo === filtroTipo;
-  
-    const inicioValido = filtroDataInicio ? data >= parseISO(filtroDataInicio) : true;
-    const fimValido = filtroDataFim ? data <= parseISO(filtroDataFim) : true;
-  
+    const inicioValido = filtroDataInicio ? d >= parseISO(filtroDataInicio) : true;
+    const fimValido    = filtroDataFim ? d <= parseISO(filtroDataFim)       : true;
     const categoriaValida = filtroCategoria ? t.categoria === filtroCategoria : true;
-  
     return periodoValido && tipoValido && inicioValido && fimValido && categoriaValida;
   });
-  
-
-  const resumo = transacoesFiltradas.reduce(
-    (acc, t) => {
-      const valor = parseFloat(t.valor);
-      if (t.tipo === 'receita') acc.receita += valor;
-      else acc.despesa += valor;
-      return acc;
-    },
-    { receita: 0, despesa: 0 }
-  );
+  const resumo = transacoesFiltradas.reduce((acc, t) => {
+    const v = parseFloat(t.valor);
+    if (t.tipo === 'receita') acc.receita += v;
+    else acc.despesa += v;
+    return acc;
+  }, { receita: 0, despesa: 0 });
   const saldo = resumo.receita - resumo.despesa;
 
-  const salvar = async () => {
+  // Salvar/atualizar
+  async function salvar(e) {
+    e?.preventDefault();
     const { descricao, valor, data, categoria } = form;
     if (!descricao || !valor || !data || !categoria) {
       toast.error('Preencha todos os campos antes de salvar!');
       return;
     }
-
     const metodo = form.id ? 'PUT' : 'POST';
     const url = form.id
-      ? `${API}/transacoes/${form.id}`
-      : `${API}/transacoes`;
-
+      ? `${API_URL}/transacoes/${form.id}`
+      : `${API_URL}/transacoes`;
     const res = await fetch(url, {
       method: metodo,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token
+        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify(form)
     });
-
     if (res.ok) {
       toast.success(metodo === 'POST' ? 'Transação adicionada!' : 'Transação atualizada!');
+      carregarTransacoes();
+      setForm({ descricao: '', tipo: 'receita', categoria: '', valor: '', data: '', id: null });
+      setModoEdicao(false);
     } else {
       toast.error('Erro ao salvar transação!');
-      return;
     }
+  }
 
-    carregarTransacoes();
-    setForm({ descricao: '', tipo: 'receita', categoria: '', valor: '', data: '', id: null });
-    setModoEdicao(false);
-  };
-
-  const editar = (t) => {
+  function editar(t) {
     setForm({
       id: t.id,
       descricao: t.descricao,
@@ -123,145 +99,116 @@ export default function Dashboard() {
       data: t.data.split('T')[0]
     });
     setModoEdicao(true);
-  };
+    setMostrarFormulario(true);
+  }
 
-  const confirmarExclusao = (id) => {
+  function confirmarExclusao(id) {
     setIdParaExcluir(id);
     setModalAberto(true);
-  };
+  }
 
-  const excluir = async (id) => {
-    const res = await fetch(`${API}/transacoes/${id}`, {
+  async function excluir(id) {
+    const res = await fetch(`${API_URL}/transacoes/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: 'Bearer ' + token }
+      headers: { Authorization: `Bearer ${token}` }
     });
-
     if (res.ok) {
       toast.success('Transação excluída!');
       carregarTransacoes();
     } else {
       toast.error('Erro ao excluir transação.');
     }
-  };
+  }
 
-  const confirmar = () => {
+  function confirmar() {
     excluir(idParaExcluir);
     setModalAberto(false);
-  };
+  }
 
-  const cancelar = () => {
+  function cancelar() {
     setIdParaExcluir(null);
     setModalAberto(false);
-  };
+  }
 
-  const logout = () => {
+  function logout() {
     localStorage.removeItem('token');
     window.location.href = '/';
-  };
+  }
 
-  const toggleSelecionarTodas = () => {
+  function toggleSelecionarTodas() {
     if (selecionadas.length === transacoesFiltradas.length) {
       setSelecionadas([]);
     } else {
       setSelecionadas(transacoesFiltradas.map(t => t.id));
     }
-  };
+  }
 
-  const toggleSelecionada = (id) => {
+  function toggleSelecionada(id) {
     setSelecionadas(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
-  };
+  }
 
-  const excluirSelecionadas = async () => {
+  // Exclusão em massa
+  async function excluirSelecionadas() {
     if (selecionadas.length === 0) {
       toast.error('Nenhuma transação selecionada.');
       return;
     }
+    const confirma = window.confirm(`Excluir ${selecionadas.length} transações?`);
+    if (!confirma) return;
 
-    const confirmar = window.confirm(`Excluir ${selecionadas.length} transações?`);
-    if (!confirmar) return;
-
-    const selectedIds = suasTransacoesSelecionadas.map(tx => tx.id);
-    console.log('IDs a excluir:', selectedIds);
-
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/transacoes`, {
+    console.log('IDs a excluir:', selecionadas);
+    const res = await fetch(`${API_URL}/transacoes`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token
+        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({ ids: selecionadas })
     });
-
     if (res.ok) {
       toast.success('Transações excluídas!');
-      carregarTransacoes();
       setSelecionadas([]);
+      carregarTransacoes();
     } else {
       toast.error('Erro ao excluir selecionadas.');
     }
-  };
+  }
 
-  const exportarCSV = () => {
+  // Exportação/Importação
+  function exportarCSV() {
     const csv = [
-      ['Data', 'Descrição', 'Tipo', 'Categoria', 'Valor'],
+      ['Data','Descrição','Tipo','Categoria','Valor'],
       ...transacoesFiltradas.map(t => [t.data, t.descricao, t.tipo, t.categoria, t.valor])
-    ].map(row => row.join(',')).join('\n');
-
+    ].map(r => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'transacoes.csv';
-    a.click();
-  };
+    a.click();   
+  }
 
-  const exportarJSON = () => {
-    const blob = new Blob([JSON.stringify(transacoesFiltradas, null, 2)], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'backup-transacoes.json';
-    a.click();
-  };
-
-  const importarJSON = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
+  async function importarJSON(e) {
+    const file = e.target.files[0]; if (!file) return;
     const text = await file.text();
     let json;
-    try {
-      json = JSON.parse(text);
-    } catch (err) {
-      toast.error('Arquivo inválido!');
-      return;
-    }
-
+    try { json = JSON.parse(text); } 
+    catch { toast.error('Arquivo inválido!'); return; }
     for (const t of json) {
-      try {
-        const res = await fetch(`${API}/transacoes`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer ' + token
-          },
-          body: JSON.stringify(t)
-        });
-
-        if (!res.ok) {
-          const erro = await res.json();
-          toast.error(`Erro ao importar: ${erro?.error || 'Erro desconhecido'}`);
-        }
-      } catch (err) {
-        toast.error('Erro inesperado ao importar');
-      }
+      await fetch(`${API_URL}/transacoes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(t)
+      });
     }
-
     toast.success('Importação concluída!');
     carregarTransacoes();
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
