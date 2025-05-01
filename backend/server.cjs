@@ -11,7 +11,7 @@ const bcrypt  = require('bcryptjs');
 const PORT   = process.env.PORT || 3001;
 const SECRET = process.env.JWT_SECRET;
 
-// 1) Imprime as variáveis de conexão
+// 1) Imprime variáveis de conexão
 console.log('🔍 Variáveis de conexão:', {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -19,7 +19,7 @@ console.log('🔍 Variáveis de conexão:', {
   database: process.env.DB_NAME
 });
 
-// 2) Configura o Express
+// 2) Configura Express
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -41,7 +41,7 @@ let db;
   }
 })();
 
-// 4) Middleware de autenticação JWT
+// 4) Middleware de JWT
 function autenticarToken(req, res, next) {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
@@ -53,7 +53,7 @@ function autenticarToken(req, res, next) {
   });
 }
 
-// 5) Serve o build do React e o index.html para rotas não-API
+// 5) Serve o React build
 app.use(express.static(path.join(__dirname, 'public')));
 app.get(/^(?!\/api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -61,12 +61,10 @@ app.get(/^(?!\/api).*/, (req, res) => {
 
 // 6) Rotas da API
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK' });
-});
+// Health
+app.get('/api/health', (req, res) => res.json({ status: 'OK' }));
 
-// LOGIN
+// Login
 app.post('/api/login', async (req, res) => {
   const { email, senha } = req.body;
   try {
@@ -74,18 +72,12 @@ app.post('/api/login', async (req, res) => {
       'SELECT id, email, senha FROM usuarios WHERE email = ?',
       [email]
     );
-    if (rows.length === 0) {
-      return res.status(401).json({ error: 'Usuário não encontrado' });
-    }
+    if (rows.length === 0) return res.status(401).json({ error: 'Usuário não encontrado' });
     const user = rows[0];
     if (!bcrypt.compareSync(senha, user.senha)) {
       return res.status(401).json({ error: 'Dados inválidos' });
     }
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      SECRET,
-      { expiresIn: '1h' }
-    );
+    const token = jwt.sign({ id: user.id, email: user.email }, SECRET, { expiresIn: '1h' });
     res.json({ token });
   } catch (err) {
     console.error('❌ Erro no login:', err.message);
@@ -93,13 +85,13 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// CRIAÇÃO DE TRANSACÃO
+// Cria transação
 app.post('/api/transacoes', autenticarToken, async (req, res) => {
   const { descricao, tipo, valor, data, categoria } = req.body;
   if (!descricao || !tipo || !valor || !data || !categoria) {
     return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
   }
-  const dataFormatada = data.includes('T') ? data.split('T')[0] : data;
+  const dataFormatada = data.split('T')[0];
   try {
     const [result] = await db.execute(
       'INSERT INTO transacoes (descricao, tipo, valor, data, categoria, usuario_id) VALUES (?, ?, ?, ?, ?, ?)',
@@ -112,7 +104,7 @@ app.post('/api/transacoes', autenticarToken, async (req, res) => {
   }
 });
 
-// LISTAGEM DE TRANSACÕES
+// Lista transações
 app.get('/api/transacoes', autenticarToken, async (req, res) => {
   try {
     const [results] = await db.execute(
@@ -126,13 +118,12 @@ app.get('/api/transacoes', autenticarToken, async (req, res) => {
   }
 });
 
-// EXCLUSÃO DE UMA TRANSACÃO
+// Exclui transação
 app.delete('/api/transacoes/:id', autenticarToken, async (req, res) => {
-  const { id } = req.params;
   try {
     const [result] = await db.execute(
       'DELETE FROM transacoes WHERE id = ? AND usuario_id = ?',
-      [id, req.user.id]
+      [req.params.id, req.user.id]
     );
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Transação não encontrada.' });
@@ -144,14 +135,13 @@ app.delete('/api/transacoes/:id', autenticarToken, async (req, res) => {
   }
 });
 
-// ATUALIZA TRANSACÃO
+// Atualiza transação
 app.put('/api/transacoes/:id', autenticarToken, async (req, res) => {
   const { descricao, tipo, valor, data, categoria } = req.body;
-  const { id } = req.params;
   try {
     await db.execute(
       'UPDATE transacoes SET descricao=?, tipo=?, valor=?, data=?, categoria=? WHERE id=? AND usuario_id=?',
-      [descricao, tipo, valor, data, categoria, id, req.user.id]
+      [descricao, tipo, valor, data.split('T')[0], categoria, req.params.id, req.user.id]
     );
     res.sendStatus(204);
   } catch (err) {
@@ -160,16 +150,18 @@ app.put('/api/transacoes/:id', autenticarToken, async (req, res) => {
   }
 });
 
-// EXCLUSÃO EM MASSA
+// Exclusão em massa (com placeholders dinâmicos)
 app.delete('/api/transacoes', autenticarToken, async (req, res) => {
   const { ids } = req.body;
   if (!Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ error: 'Nenhuma transação selecionada.' });
   }
+  // Monta placeholders conforme número de ids
+  const placeholders = ids.map(() => '?').join(',');
   try {
     const [result] = await db.execute(
-      'DELETE FROM transacoes WHERE id IN (?) AND usuario_id = ?',
-      [ids, req.user.id]
+      `DELETE FROM transacoes WHERE id IN (${placeholders}) AND usuario_id = ?`,
+      [...ids, req.user.id]
     );
     res.json({ deletadas: result.affectedRows });
   } catch (err) {
