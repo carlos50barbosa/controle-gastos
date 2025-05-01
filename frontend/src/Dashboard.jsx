@@ -182,6 +182,9 @@ export default function Dashboard() {
     const confirmar = window.confirm(`Excluir ${selecionadas.length} transações?`);
     if (!confirmar) return;
 
+    const selectedIds = suasTransacoesSelecionadas.map(tx => tx.id);
+    console.log('IDs a excluir:', selectedIds);
+
     const res = await fetch(`${import.meta.env.VITE_API_URL}/transacoes`, {
       method: 'DELETE',
       headers: {
