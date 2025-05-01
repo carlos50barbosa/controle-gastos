@@ -158,7 +158,7 @@ app.put('/api/transacoes/:id', autenticarToken, async (req, res) => {
   }
 });
 
-// Exclusão em massa
+// Exclusão em massa_xxx
 app.delete('/api/transacoes', autenticarToken, async (req, res) => {
   const { ids } = req.body;
   console.log('❓ IDs recebidos:', ids);
@@ -167,30 +167,32 @@ app.delete('/api/transacoes', autenticarToken, async (req, res) => {
     return res.status(400).json({ error: 'Nenhuma transação selecionada.' });
   }
 
-  // Converte e filtra apenas inteiros válidos
+  // Garante que sejam números válidos
   const numericIds = ids
     .map(i => parseInt(i, 10))
-    .filter(i => Number.isInteger(i));
-  console.log('🔢 IDs numéricos:', numericIds);
+    .filter(i => !isNaN(i));
+  console.log('🔢 IDs numéricos válidos:', numericIds);
 
   if (numericIds.length === 0) {
     return res.status(400).json({ error: 'IDs inválidos.' });
   }
 
+  // Monta um ? para cada ID
+  const placeholders = numericIds.map(() => '?').join(',');
+  const sql = `DELETE FROM transacoes WHERE id IN (${placeholders}) AND usuario_id = ?`;
+  const params = [...numericIds, req.user.id];
+  console.log('🔨 SQL montada:', sql);
+  console.log('📋 Params:', params);
+
   try {
-    // mysql2 aceita array para IN (?)
-    const [result] = await db.execute(
-      'DELETE FROM transacoes WHERE id IN (?) AND usuario_id = ?',
-      [numericIds, req.user.id]
-    );
+    const [result] = await db.execute(sql, params);
     console.log('✅ Transações deletadas:', result.affectedRows);
     return res.json({ deletadas: result.affectedRows });
   } catch (err) {
-    console.error('❌ Erro ao excluir múltiplas transações:', err);
+    console.error('❌ Erro ao excluir múltiplas transações:', err.message);
     return res.status(500).json({ error: 'Erro ao excluir transações.' });
   }
 });
-
 
 // 7) Inicializa o servidor
 app.listen(PORT, () => {
