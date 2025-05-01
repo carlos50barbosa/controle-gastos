@@ -41,7 +41,7 @@ let db;
   }
 })();
 
-// 4) Middleware de JWT
+// 4) Middleware JWT
 function autenticarToken(req, res, next) {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
@@ -53,18 +53,20 @@ function autenticarToken(req, res, next) {
   });
 }
 
-// 5) Serve o React build
+// 5) Serve build React e SPA fallback
 app.use(express.static(path.join(__dirname, 'public')));
 app.get(/^(?!\/api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 6) Rotas da API
+// 6) Rotas API
 
-// Health
-app.get('/api/health', (req, res) => res.json({ status: 'OK' }));
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK' });
+});
 
-// Login
+// LOGIN
 app.post('/api/login', async (req, res) => {
   const { email, senha } = req.body;
   try {
@@ -72,12 +74,18 @@ app.post('/api/login', async (req, res) => {
       'SELECT id, email, senha FROM usuarios WHERE email = ?',
       [email]
     );
-    if (rows.length === 0) return res.status(401).json({ error: 'Usuário não encontrado' });
+    if (rows.length === 0) {
+      return res.status(401).json({ error: 'Usuário não encontrado' });
+    }
     const user = rows[0];
     if (!bcrypt.compareSync(senha, user.senha)) {
       return res.status(401).json({ error: 'Dados inválidos' });
     }
-    const token = jwt.sign({ id: user.id, email: user.email }, SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      SECRET,
+      { expiresIn: '1h' }
+    );
     res.json({ token });
   } catch (err) {
     console.error('❌ Erro no login:', err.message);
@@ -85,7 +93,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Cria transação
+// CRIAÇÃO DE TRANSAÇÃO
 app.post('/api/transacoes', autenticarToken, async (req, res) => {
   const { descricao, tipo, valor, data, categoria } = req.body;
   if (!descricao || !tipo || !valor || !data || !categoria) {
@@ -104,7 +112,7 @@ app.post('/api/transacoes', autenticarToken, async (req, res) => {
   }
 });
 
-// Lista transações
+// LISTAGEM DE TRANSAÇÕES
 app.get('/api/transacoes', autenticarToken, async (req, res) => {
   try {
     const [results] = await db.execute(
@@ -118,7 +126,7 @@ app.get('/api/transacoes', autenticarToken, async (req, res) => {
   }
 });
 
-// Exclui transação
+// EXCLUSÃO DE UMA TRANSAÇÃO
 app.delete('/api/transacoes/:id', autenticarToken, async (req, res) => {
   try {
     const [result] = await db.execute(
@@ -135,7 +143,7 @@ app.delete('/api/transacoes/:id', autenticarToken, async (req, res) => {
   }
 });
 
-// Atualiza transação
+// ATUALIZA TRANSAÇÃO
 app.put('/api/transacoes/:id', autenticarToken, async (req, res) => {
   const { descricao, tipo, valor, data, categoria } = req.body;
   try {
@@ -150,22 +158,36 @@ app.put('/api/transacoes/:id', autenticarToken, async (req, res) => {
   }
 });
 
-// Exclusão em massa (com placeholders dinâmicos)
+// EXCLUSÃO EM MASSA
 app.delete('/api/transacoes', autenticarToken, async (req, res) => {
   const { ids } = req.body;
+  console.log('❓ IDs recebidos para exclusão:', ids);
+
   if (!Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ error: 'Nenhuma transação selecionada.' });
   }
-  // Monta placeholders conforme número de ids
-  const placeholders = ids.map(() => '?').join(',');
+
+  // Converte para números válidos
+  const numericIds = ids.map(i => parseInt(i, 10)).filter(i => !isNaN(i));
+  console.log('🔢 IDs numéricos válidos:', numericIds);
+
+  if (numericIds.length === 0) {
+    return res.status(400).json({ error: 'IDs inválidos.' });
+  }
+
+  // Monta placeholders e parâmetros
+  const placeholders = numericIds.map(() => '?').join(',');
+  const sql = `DELETE FROM transacoes WHERE id IN (${placeholders}) AND usuario_id = ?`;
+  const params = [...numericIds, req.user.id];
+  console.log('🔨 SQL montada:', sql);
+  console.log('📋 Params:', params);
+
   try {
-    const [result] = await db.execute(
-      `DELETE FROM transacoes WHERE id IN (${placeholders}) AND usuario_id = ?`,
-      [...ids, req.user.id]
-    );
+    const [result] = await db.execute(sql, params);
+    console.log(`✅ Transações deletadas: ${result.affectedRows}`);
     res.json({ deletadas: result.affectedRows });
   } catch (err) {
-    console.error('❌ Erro ao excluir múltiplas transações:', err.message);
+    console.error('❌ Erro ao excluir múltiplas transações:', err);
     res.status(500).json({ error: 'Erro ao excluir transações.' });
   }
 });
