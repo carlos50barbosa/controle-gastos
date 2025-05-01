@@ -288,7 +288,7 @@ export default function Dashboard() {
           onClick={() => setMostrarBotoes(!mostrarBotoes)}
           className="bg-gray-700 text-white px-4 py-2 rounded"
         >
-          {mostrarBotoes ? 'Ocultar Botões' : 'Mostrar Botões'}
+          {mostrarBotoes ? '✖' : '☰ Botões'}
         </button>
         </div>
 
@@ -297,7 +297,7 @@ export default function Dashboard() {
             onClick={() => setMostrarFiltros(!mostrarFiltros)}
             className="bg-gray-700 text-white px-4 py-2 rounded"
           >
-            {mostrarFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+            {mostrarFiltros ? '✖' : '☰ Filtros'}
           </button>
         </div>
 
@@ -306,7 +306,7 @@ export default function Dashboard() {
           onClick={() => setMostrarFormulario(!mostrarFormulario)}
           className="bg-gray-700 text-white px-4 py-2 rounded"
         >
-          {mostrarFormulario ? 'Ocultar Formulário' : 'Mostrar Formulário'}
+          {mostrarFormulario ? '✖' : '☰ Formulário'}
         </button>
       </div>
 
