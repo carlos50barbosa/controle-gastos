@@ -1,3 +1,4 @@
+
 const path = require('path');
 
 // força carregar o .env que está na mesma pasta de server.cjs
