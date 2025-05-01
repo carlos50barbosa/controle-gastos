@@ -41,7 +41,7 @@ export default function Dashboard() {
   }, []);
 
   const carregarTransacoes = async () => {
-    const res = await fetch(`${API}/transacoes`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/transacoes`, {
       headers: { Authorization: 'Bearer ' + token }
     });
     const data = await res.json();
@@ -182,7 +182,7 @@ export default function Dashboard() {
     const confirmar = window.confirm(`Excluir ${selecionadas.length} transações?`);
     if (!confirmar) return;
 
-    const res = await fetch(`${API}/transacoes`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/transacoes`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
