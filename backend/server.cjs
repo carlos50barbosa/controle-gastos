@@ -158,39 +158,39 @@ app.put('/api/transacoes/:id', autenticarToken, async (req, res) => {
   }
 });
 
-// EXCLUSÃO EM MASSA
+// Exclusão em massa
 app.delete('/api/transacoes', autenticarToken, async (req, res) => {
   const { ids } = req.body;
-  console.log('❓ IDs recebidos para exclusão:', ids);
+  console.log('❓ IDs recebidos:', ids);
 
   if (!Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ error: 'Nenhuma transação selecionada.' });
   }
 
-  // Converte para números válidos
-  const numericIds = ids.map(i => parseInt(i, 10)).filter(i => !isNaN(i));
-  console.log('🔢 IDs numéricos válidos:', numericIds);
+  // Converte e filtra apenas inteiros válidos
+  const numericIds = ids
+    .map(i => parseInt(i, 10))
+    .filter(i => Number.isInteger(i));
+  console.log('🔢 IDs numéricos:', numericIds);
 
   if (numericIds.length === 0) {
     return res.status(400).json({ error: 'IDs inválidos.' });
   }
 
-  // Monta placeholders e parâmetros
-  const placeholders = numericIds.map(() => '?').join(',');
-  const sql = `DELETE FROM transacoes WHERE id IN (${placeholders}) AND usuario_id = ?`;
-  const params = [...numericIds, req.user.id];
-  console.log('🔨 SQL montada:', sql);
-  console.log('📋 Params:', params);
-
   try {
-    const [result] = await db.execute(sql, params);
-    console.log(`✅ Transações deletadas: ${result.affectedRows}`);
-    res.json({ deletadas: result.affectedRows });
+    // mysql2 aceita array para IN (?)
+    const [result] = await db.execute(
+      'DELETE FROM transacoes WHERE id IN (?) AND usuario_id = ?',
+      [numericIds, req.user.id]
+    );
+    console.log('✅ Transações deletadas:', result.affectedRows);
+    return res.json({ deletadas: result.affectedRows });
   } catch (err) {
     console.error('❌ Erro ao excluir múltiplas transações:', err);
-    res.status(500).json({ error: 'Erro ao excluir transações.' });
+    return res.status(500).json({ error: 'Erro ao excluir transações.' });
   }
 });
+
 
 // 7) Inicializa o servidor
 app.listen(PORT, () => {
