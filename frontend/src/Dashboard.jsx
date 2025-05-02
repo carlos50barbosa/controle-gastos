@@ -273,7 +273,7 @@ const saldo = resumo.receita - resumo.despesa;
               <option value="dia">Hoje</option>
               <option value="semana">Esta semana</option>
               <option value="mes">Este mês</option>
-              <option value="mes">Todos</option>
+              <option value="todos">Todos</option>
             </select>
             <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="border p-2 rounded">
               <option value="todos">Todos</option>
