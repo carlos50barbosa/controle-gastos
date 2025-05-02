@@ -126,23 +126,6 @@ app.get('/api/transacoes', autenticarToken, async (req, res) => {
   }
 });
 
-// EXCLUSÃO DE UMA TRANSAÇÃO
-app.delete('/api/transacoes/:id', autenticarToken, async (req, res) => {
-  try {
-    const [result] = await db.execute(
-      'DELETE FROM transacoes WHERE id = ? AND usuario_id = ?',
-      [req.params.id, req.user.id]
-    );
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Transação não encontrada.' });
-    }
-    res.sendStatus(204);
-  } catch (err) {
-    console.error('❌ Erro ao excluir transação:', err.message);
-    res.status(500).json({ error: 'Erro ao excluir transação.' });
-  }
-});
-
 // ATUALIZA TRANSAÇÃO
 app.put('/api/transacoes/:id', autenticarToken, async (req, res) => {
   const { descricao, tipo, valor, data, categoria } = req.body;

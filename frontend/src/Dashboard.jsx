@@ -17,7 +17,7 @@ export default function Dashboard() {
   const [modalAberto, setModalAberto] = useState(false);
   const [selecionadas, setSelecionadas] = useState([]);
   const [filtroTipo, setFiltroTipo] = useState('todos');
-  const [filtroPeriodo, setFiltroPeriodo] = useState('mes');
+  const [filtroPeriodo, setFiltroPeriodo] = useState('todos');
   const [filtroDataInicio, setFiltroDataInicio] = useState('');
   const [filtroDataFim, setFiltroDataFim] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
@@ -37,27 +37,38 @@ export default function Dashboard() {
   }
 
   // Filtros e resumo
-  const hoje = new Date();
-  const transacoesFiltradas = transactions.filter(t => {
-    const d = parseISO(t.data);
-    const periodoValido =
-      (filtroPeriodo === 'dia' && isSameDay(d, hoje)) ||
-      (filtroPeriodo === 'semana' && isSameWeek(d, hoje)) ||
-      (filtroPeriodo === 'mes' && isSameMonth(d, hoje)) ||
-      (!filtroPeriodo);
-    const tipoValido = filtroTipo === 'todos' || t.tipo === filtroTipo;
-    const inicioValido = filtroDataInicio ? d >= parseISO(filtroDataInicio) : true;
-    const fimValido    = filtroDataFim ? d <= parseISO(filtroDataFim)       : true;
-    const categoriaValida = filtroCategoria ? t.categoria === filtroCategoria : true;
-    return periodoValido && tipoValido && inicioValido && fimValido && categoriaValida;
-  });
-  const resumo = transacoesFiltradas.reduce((acc, t) => {
-    const v = parseFloat(t.valor);
-    if (t.tipo === 'receita') acc.receita += v;
-    else acc.despesa += v;
-    return acc;
-  }, { receita: 0, despesa: 0 });
-  const saldo = resumo.receita - resumo.despesa;
+const hoje = new Date();
+const transacoesFiltradas = transactions.filter(t => {
+  const d = parseISO(t.data);
+  const periodoValido =
+    filtroPeriodo === 'todos' ||
+    (filtroPeriodo === 'dia'    && isSameDay(d, hoje))   ||
+    (filtroPeriodo === 'semana' && isSameWeek(d, hoje)) ||
+    (filtroPeriodo === 'mes'    && isSameMonth(d, hoje));
+
+  const tipoValido      = filtroTipo === 'todos'    || t.tipo === filtroTipo;
+  const inicioValido    = filtroDataInicio
+    ? d >= parseISO(filtroDataInicio)
+    : true;
+  const fimValido       = filtroDataFim
+    ? d <= parseISO(filtroDataFim)
+    : true;
+  const categoriaValida = filtroCategoria
+    ? t.categoria === filtroCategoria
+    : true;
+
+  return periodoValido && tipoValido && inicioValido && fimValido && categoriaValida;
+});
+
+const resumo = transacoesFiltradas.reduce((acc, t) => {
+  const v = parseFloat(t.valor);
+  if (t.tipo === 'receita') acc.receita += v;
+  else acc.despesa += v;
+  return acc;
+}, { receita: 0, despesa: 0 });
+
+const saldo = resumo.receita - resumo.despesa;
+
 
   // Salvar/atualizar
   async function salvar(e) {
@@ -255,17 +266,14 @@ export default function Dashboard() {
         >
           {mostrarFormulario ? '✖' : '☰ Formulário'}
         </button>
-      </div>
-
-      
-
-
+      </div>  
         <div className={`flex flex-wrap gap-4 justify-center sm:justify-start ${!mostrarFiltros ? 'hidden' : ''} sm:flex`}>
           <div className={`flex flex-wrap gap-4 justify-center sm:justify-start'hidden' : ''} sm:flex`}>
             <select value={filtroPeriodo} onChange={e => setFiltroPeriodo(e.target.value)} className="border p-2 rounded">
               <option value="dia">Hoje</option>
               <option value="semana">Esta semana</option>
               <option value="mes">Este mês</option>
+              <option value="mes">Todos</option>
             </select>
             <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="border p-2 rounded">
               <option value="todos">Todos</option>
@@ -273,7 +281,6 @@ export default function Dashboard() {
               <option value="despesa">Despesas</option>
             </select>
           </div>
-          
 
           <div className="flex flex-wrap gap-4 justify-center sm:justify-start mt-2">
             <input
