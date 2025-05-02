@@ -369,7 +369,7 @@ const saldo = resumo.receita - resumo.despesa;
 
       <main className="p-4 sm:p-6 pt-8 space-y-6">
         <div className="bg-white rounded shadow p-4 text-center">
-          <h2 className="text-lg font-semibold mb-2">Saldo</h2>
+          <h2 className="text-lg font-semibold mb-2">xxxSaldoxxx</h2>
           <p className={`text-2xl font-bold ${saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}>R$ {saldo.toFixed(2)}</p>
         </div>
 
