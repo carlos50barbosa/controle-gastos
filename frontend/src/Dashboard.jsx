@@ -268,14 +268,29 @@ const saldo = resumo.receita - resumo.despesa;
         </button>
       </div>  
         <div className={`flex flex-wrap gap-4 justify-center sm:justify-start ${!mostrarFiltros ? 'hidden' : ''} sm:flex`}>
-          <div className={`flex flex-wrap gap-4 justify-center sm:justify-start'hidden' : ''} sm:flex`}>
-            <select value={filtroPeriodo} onChange={e => setFiltroPeriodo(e.target.value)} className="border p-2 rounded">
+          <div
+            className={`
+              flex flex-wrap gap-4 justify-center sm:justify-start
+              ${!mostrarFiltros ? 'hidden' : ''}
+              sm:flex
+            `}
+          >
+            <select
+              value={filtroPeriodo}
+              onChange={e => setFiltroPeriodo(e.target.value)}
+              className="border p-2 rounded"
+            >
+              <option value="todos">Todos</option>
               <option value="dia">Hoje</option>
               <option value="semana">Esta semana</option>
               <option value="mes">Este mês</option>
-              <option value="todos">Todos</option>
             </select>
-            <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="border p-2 rounded">
+
+            <select
+              value={filtroTipo}
+              onChange={e => setFiltroTipo(e.target.value)}
+              className="border p-2 rounded"
+            >
               <option value="todos">Todos</option>
               <option value="receita">Receitas</option>
               <option value="despesa">Despesas</option>
